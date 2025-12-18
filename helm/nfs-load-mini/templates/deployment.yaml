@@ -1,0 +1,35 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "nfs-load-mini.fullname" . }}
+  labels:
+    app: {{ include "nfs-load-mini.name" . }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "nfs-load-mini.name" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "nfs-load-mini.name" . }}
+    spec:
+      containers:
+        - name: app
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          env:
+            - name: NFS_BASE_DIR
+              value: {{ .Values.nfs.mountPath | quote }}
+          ports:
+            - containerPort: 8000
+          volumeMounts:
+            - name: nfs-vol
+              mountPath: {{ .Values.nfs.mountPath }}
+          resources:
+{{ toYaml .Values.resources | indent 12 }}
+      volumes:
+        - name: nfs-vol
+          nfs:
+            server: {{ .Values.nfs.server | quote }}
+            path: {{ .Values.nfs.path | quote }}

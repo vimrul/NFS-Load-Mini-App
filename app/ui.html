@@ -1,0 +1,120 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>NFS Load Mini</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 22px; }
+    label { display:block; margin-top: 10px; }
+    input, select { width: 360px; padding: 6px; }
+    button { margin-top: 14px; padding: 10px 14px; cursor: pointer; }
+    pre { background:#111; color:#eee; padding:12px; overflow:auto; }
+    .row { display:flex; gap:24px; flex-wrap: wrap; }
+    .card { border:1px solid #ddd; padding:16px; border-radius: 10px; }
+  </style>
+</head>
+<body>
+  <h2>NFS Load Mini (K8s → NFS)</h2>
+
+  <div class="row">
+    <div class="card">
+      <h3>Start Test</h3>
+
+      <label>Base dir (mounted NFS path)
+        <input id="base_dir" value="/mnt/nfs" />
+      </label>
+
+      <label>Sub dir
+        <input id="sub_dir" value="loadtest" />
+      </label>
+
+      <label>Mode
+        <select id="mode">
+          <option value="mixed" selected>mixed</option>
+          <option value="read">read</option>
+          <option value="write">write</option>
+        </select>
+      </label>
+
+      <label>Duration (seconds)
+        <input id="duration_sec" type="number" value="60" />
+      </label>
+
+      <label>Concurrency (workers)
+        <input id="concurrency" type="number" value="20" />
+      </label>
+
+      <label>File size (KB)
+        <input id="file_size_kb" type="number" value="4" />
+      </label>
+
+      <label>Files per worker
+        <input id="files_per_worker" type="number" value="200" />
+      </label>
+
+      <label>Read ratio % (only mixed)
+        <input id="read_ratio" type="number" value="70" />
+      </label>
+
+      <label>
+        <input id="fsync_each_write" type="checkbox" /> fsync each write (durable, slower)
+      </label>
+
+      <label>
+        <input id="cleanup" type="checkbox" /> cleanup (delete job files after test)
+      </label>
+
+      <button onclick="startJob()">Start</button>
+      <div id="jobinfo"></div>
+    </div>
+
+    <div class="card" style="min-width:520px; flex:1;">
+      <h3>Status / Report</h3>
+      <pre id="out">{}</pre>
+    </div>
+  </div>
+
+<script>
+let currentJob = null;
+
+async function startJob(){
+  const payload = {
+    base_dir: document.getElementById("base_dir").value,
+    sub_dir: document.getElementById("sub_dir").value,
+    mode: document.getElementById("mode").value,
+    duration_sec: parseInt(document.getElementById("duration_sec").value, 10),
+    concurrency: parseInt(document.getElementById("concurrency").value, 10),
+    file_size_kb: parseInt(document.getElementById("file_size_kb").value, 10),
+    files_per_worker: parseInt(document.getElementById("files_per_worker").value, 10),
+    read_ratio: parseInt(document.getElementById("read_ratio").value, 10),
+    fsync_each_write: document.getElementById("fsync_each_write").checked,
+    cleanup: document.getElementById("cleanup").checked
+  };
+
+  const res = await fetch("/api/jobs", {
+    method:"POST",
+    headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(payload)
+  });
+  const j = await res.json();
+  currentJob = j.job_id;
+  document.getElementById("jobinfo").innerHTML = "Job: <b>" + currentJob + "</b>";
+  poll();
+}
+
+async function poll(){
+  if(!currentJob) return;
+
+  const s = await fetch("/api/jobs/" + currentJob).then(r=>r.json());
+  document.getElementById("out").textContent = JSON.stringify(s, null, 2);
+
+  if(s.status === "done"){
+    const rep = await fetch("/api/jobs/" + currentJob + "/report").then(r=>r.json());
+    document.getElementById("out").textContent = JSON.stringify(rep, null, 2);
+    return;
+  }
+  setTimeout(poll, 1500);
+}
+</script>
+</body>
+</html>

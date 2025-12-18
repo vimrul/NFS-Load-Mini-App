@@ -1,0 +1,26 @@
+replicaCount: 1
+
+image:
+  repository: your-dockerhub-user/nfs-load-mini
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+service:
+  type: ClusterIP
+  port: 80
+
+ingress:
+  enabled: false
+  className: ""
+  hosts:
+    - host: nfs-load-mini.local
+      paths:
+        - path: /
+          pathType: Prefix
+
+nfs:
+  server: "172.16.2.111"
+  path: "/mnt/storage/k8s-cluster-vol/production-vol/document-service/private"
+  mountPath: "/mnt/nfs"
+
+resources: {}
