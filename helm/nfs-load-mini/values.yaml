@@ -1,9 +1,9 @@
 replicaCount: 1
 
 image:
-  repository: 172.16.2.71:5000/load-test-nfs:latest
+  repository: 172.16.2.71:5000/load-test-nfs
   tag: "0.1.0"
-  pullPolicy: IfNotPresent
+  pullPolicy: Always
 
 # Optional: same style as your earlier yaml snippet
 # imagePullSecrets:
