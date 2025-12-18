@@ -1,4 +1,6 @@
 apiVersion: v2
 name: nfs-load-mini
+description: Minimal NFS load test mini app (K8s -> NFS) with simple UI
+type: application
 version: 0.1.0
 appVersion: "0.1.0"

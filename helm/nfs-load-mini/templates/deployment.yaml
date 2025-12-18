@@ -3,7 +3,7 @@ kind: Deployment
 metadata:
   name: {{ include "nfs-load-mini.fullname" . }}
   labels:
-    app: {{ include "nfs-load-mini.name" . }}
+{{ include "nfs-load-mini.labels" . | indent 4 }}
 spec:
   replicas: {{ .Values.replicaCount }}
   selector:
@@ -13,23 +13,68 @@ spec:
     metadata:
       labels:
         app: {{ include "nfs-load-mini.name" . }}
+{{ include "nfs-load-mini.labels" . | indent 8 }}
     spec:
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+        {{- range .Values.imagePullSecrets }}
+        - name: {{ . | quote }}
+        {{- end }}
+      {{- end }}
+
       containers:
-        - name: app
+        - name: nfs-load-mini
           image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
           imagePullPolicy: {{ .Values.image.pullPolicy }}
+
+          ports:
+            - name: http
+              containerPort: 8000
+
           env:
             - name: NFS_BASE_DIR
-              value: {{ .Values.nfs.mountPath | quote }}
-          ports:
-            - containerPort: 8000
+              value: {{ .Values.nfs.defaultBaseDir | quote }}
+
+            # Convenience envs (optional – useful for UI improvements later)
+            - name: NFS_PRIVATE_DIR
+              value: {{ .Values.nfs.private.mountPath | quote }}
+            - name: NFS_PUBLIC_DIR
+              value: {{ .Values.nfs.public.mountPath | quote }}
+
           volumeMounts:
-            - name: nfs-vol
-              mountPath: {{ .Values.nfs.mountPath }}
+            - name: nfs-private
+              mountPath: {{ .Values.nfs.private.mountPath | quote }}
+            - name: nfs-public
+              mountPath: {{ .Values.nfs.public.mountPath | quote }}
+
+          livenessProbe:
+            httpGet:
+              path: /
+              port: 8000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 2
+            failureThreshold: 6
+
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 8000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 2
+            failureThreshold: 6
+
           resources:
 {{ toYaml .Values.resources | indent 12 }}
+
       volumes:
-        - name: nfs-vol
+        - name: nfs-private
           nfs:
             server: {{ .Values.nfs.server | quote }}
-            path: {{ .Values.nfs.path | quote }}
+            path: {{ .Values.nfs.private.path | quote }}
+
+        - name: nfs-public
+          nfs:
+            server: {{ .Values.nfs.server | quote }}
+            path: {{ .Values.nfs.public.path | quote }}

@@ -5,6 +5,10 @@ image:
   tag: "0.1.0"
   pullPolicy: IfNotPresent
 
+# Optional: same style as your earlier yaml snippet
+# imagePullSecrets:
+#   - regcred
+
 service:
   type: ClusterIP
   port: 80
@@ -12,15 +16,29 @@ service:
 ingress:
   enabled: false
   className: ""
+  annotations: {}
   hosts:
     - host: nfs-load-mini.local
       paths:
         - path: /
           pathType: Prefix
-
-nfs:
-  server: "172.16.2.111"
-  path: "/mnt/storage/k8s-cluster-vol/production-vol/document-service/private"
-  mountPath: "/mnt/nfs"
+  tls: [] # example:
+  # - secretName: nfs-load-mini-tls
+  #   hosts:
+  #     - nfs-load-mini.local
 
 resources: {}
+
+nfs:
+  # Shown as default in the UI input box (you can still change it in UI)
+  defaultBaseDir: "/mnt/nfs-private"
+
+  server: "172.16.2.111"
+
+  private:
+    path: "/mnt/storage/k8s-cluster-vol/test-folder/private"
+    mountPath: "/mnt/nfs-private"
+
+  public:
+    path: "/mnt/storage/k8s-cluster-vol/test-folder/public"
+    mountPath: "/mnt/nfs-public"

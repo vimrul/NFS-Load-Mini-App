@@ -1,0 +1,17 @@
+NFS Load Mini deployed.
+
+1) Get service:
+   kubectl get svc -l app.kubernetes.io/name=nfs-load-mini
+
+2) Port-forward:
+   kubectl port-forward svc/{{ include "nfs-load-mini.fullname" . }} 8080:{{ .Values.service.port }}
+
+3) Open:
+   http://localhost:8080
+
+Mounted NFS paths inside pod:
+- Private: {{ .Values.nfs.private.mountPath }}
+- Public : {{ .Values.nfs.public.mountPath }}
+
+Default UI base dir:
+- {{ .Values.nfs.defaultBaseDir }}
